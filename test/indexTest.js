@@ -24,6 +24,15 @@ const dom = new JSDOM(html, {
 //Handle fetch
 const fetchPkg = 'node_modules/whatwg-fetch/dist/fetch.umd.js';
 dom.window.eval(fs.readFileSync(fetchPkg, 'utf-8'));
+dom.window.fetch = async () => ({
+  ok: true,
+  json: async () => [
+    {
+      title: 'sunt aut facere repellat',
+      body: 'quia et suscipit\nsuscipit'
+    }
+  ]
+});
 
 // Inject the transformed JavaScript into the virtual DOM
 const scriptElement = dom.window.document.createElement("script");
@@ -41,14 +50,27 @@ global.XMLHttpRequest = dom.window.XMLHttpRequest;
 
 // Sample test suite for JavaScript event handling
 describe('Asynchronous Fetching ', () => {
-  it('should fetch to external api and add information to page', async() => {
-    await new Promise(resolve => setTimeout(resolve, 200)); 
+  before(async () => {
+    if (document.querySelector('h1')) return;
+
+    await new Promise((resolve) => {
+      const observer = new window.MutationObserver(() => {
+        if (document.querySelector('h1')) {
+          observer.disconnect();
+          resolve();
+        }
+      });
+
+      observer.observe(document.querySelector("#post-list"), { childList: true });
+    });
+  });
+
+  it('should fetch posts and add information to page', () => {
     let postDisplay = document.querySelector("#post-list")
     expect(postDisplay.innerHTML).to.include('sunt aut')
-    
   })
-  it('should create an h1 and p element to add', async() => {
-    await new Promise(resolve => setTimeout(resolve, 200)); 
+
+  it('should create an h1 and p element to add', () => {
     let h1 = document.querySelector("h1")
     let p = document.querySelector("p")
     expect(h1.textContent).to.include("sunt aut facere repellat")
